@@ -46,6 +46,26 @@
   </dl>
 </section>
 
+<h2 class="section-title">Edit history</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Changed</th><th>By</th><th>Field</th><th>Previous value</th><th>New value</th></tr></thead>
+    <tbody>
+      {% for c in history %}
+      <tr>
+        <td class="nowrap">{{ c.changed_at|local }}</td>
+        <td>{{ c.changed_by }}</td>
+        <td>{{ field_labels.get(c.field, c.field) }}</td>
+        <td class="prewrap">{{ c.old_value or "—" }}</td>
+        <td class="prewrap">{{ c.new_value or "—" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">Never edited.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
 <h2 class="section-title">Renewal history</h2>
 <div class="table-wrap">
   <table>

@@ -29,6 +29,8 @@ Não há fluxo de solicitação e aprovação, integração com Microsoft Graph,
 - **Campanhas de revisão**: nome, data de início, prazo e escopo (status, interno/externo, criticidade, empresa, sistema). Os acessos que combinam são copiados para a campanha e cada um recebe um resultado: *Removal confirmed*, *Renewed* ou *Kept with justification*. O andamento (por exemplo 8 de 12) e o estado de atrasada aparecem na tela.
 - **Revisão em lote**: marque vários itens pendentes de uma campanha e registre um resultado para todos. Cada item é conferido antes; se um falhar, nada muda e cada problema é listado. *Removal confirmed* pede uma tela de confirmação, porque não dá para desfazer.
 - **Relatório da campanha**: uma página para imprimir e um CSV com escopo, datas, totais por resultado e cada item com resultado, justificativa, revisor e data. Disponível para administradores e viewers.
+- **Histórico de edição**: cada edição guarda o valor anterior e o novo de cada campo alterado, com quem e quando. Não pode ser alterado nem apagado.
+- **Expiring summary**: uma página para imprimir com os acessos que terminam em breve e os expirados ainda sem revisão. Disponível para administradores e viewers.
 - **Archive**: acessos fechados, fora da lista principal mas sempre pesquisáveis.
 - **Logout automático após 5 minutos parado** (configurável). Um aviso aparece 30 segundos antes: mexa o mouse, clique ou digite para continuar logado.
 - **Audit log** (só admin): somente inclusão, com filtros e exportação CSV. Os eventos novos são selados numa **cadeia de hash**, e a tela **Verify integrity** a confere.
@@ -132,7 +134,9 @@ Cada novo evento de auditoria guarda o hash do evento anterior e o seu próprio 
 - Os eventos gravados **antes** da cadeia existir (versões antigas) nunca são reescritos. Ao atualizar, o app grava um evento inicial com a contagem deles e uma impressão digital SHA-256, então alterá-los depois ainda é detectado. Eles aparecem como "before the chain".
 - A tela mostra o **topo da cadeia** (o último hash, com o número e o horário do evento). Copie esse valor para fora do app de vez em quando, por exemplo num chamado ou e-mail.
 - **Guarde o `.env` junto com o backup do banco.** A chave da cadeia vem dele. Se a `SECRET_KEY` (ou a `AUDIT_HASH_KEY`) mudar, a verificação diz que não consegue verificar, em vez de acusar adulteração.
-- O CSV do audit log inclui o hash anterior e o hash de cada evento, para a cadeia poder ser verificada fora do app.
+- O CSV do audit log inclui o hash anterior e o hash de cada evento.
+- **Verificar sem o app:** `verify_audit.bat` (ou `python verify_audit.py`) confere o arquivo do banco diretamente, só leitura, usando apenas a biblioteca padrão do Python. Ele termina com 0 (íntegro), 1 (adulteração encontrada) ou 2 (não foi possível verificar), então também serve em tarefas agendadas. Use `--top <hash>` para comparar com o topo da cadeia que você copiou antes, e `--db <arquivo>` para outro banco. No Docker: `docker compose exec accesskeeper python verify_audit.py`.
+- O painel lembra os administradores quando o log não é verificado há `INTEGRITY_REMINDER_DAYS` dias (padrão 30, `0` desliga).
 
 ## Backup do banco
 
@@ -140,7 +144,7 @@ O AccessKeeper usa um único arquivo SQLite: `instance/accesskeeper.db` (no Dock
 
 ## Atualizando de uma versão anterior
 
-Substitua os arquivos do projeto e mantenha a pasta `instance/` e o `.env`. Na primeira execução o app cria sozinho as tabelas e colunas novas e mantém os seus dados. Da 3.1 para a 3.2: todo acesso existente vira **Standard** e a cadeia de hash do audit log começa (um evento inicial registra quantos eventos antigos existem e a impressão digital deles). Você não precisa apagar nem mudar nada. Se quiser, adicione `CRITICAL_MAX_DAYS`, `HIGH_MAX_DAYS` e `AUDIT_HASH_KEY` ao seu `.env`; os padrões funcionam. Atualizações anteriores (3.0 para 3.1) também montaram o catálogo de sistemas e fecharam os acessos já revisados como removidos. A configuração antiga `SESSION_MINUTES` não é mais usada: `IDLE_TIMEOUT_MINUTES=5` é o padrão.
+Substitua os arquivos do projeto e mantenha a pasta `instance/` e o `.env`. Na primeira execução o app cria sozinho as tabelas e colunas novas e mantém os seus dados. Da 3.2 para a 3.3: uma tabela do histórico de edição é adicionada; nada mais muda. Da 3.1 para a 3.2: todo acesso existente vira **Standard** e a cadeia de hash do audit log começa (um evento inicial registra quantos eventos antigos existem e a impressão digital deles). Você não precisa apagar nem mudar nada. Se quiser, adicione `CRITICAL_MAX_DAYS`, `HIGH_MAX_DAYS` e `AUDIT_HASH_KEY` ao seu `.env`; os padrões funcionam. Atualizações anteriores (3.0 para 3.1) também montaram o catálogo de sistemas e fecharam os acessos já revisados como removidos. A configuração antiga `SESSION_MINUTES` não é mais usada: `IDLE_TIMEOUT_MINUTES=5` é o padrão.
 
 ## Testes
 
@@ -193,6 +197,7 @@ accesskeeper/
 tests/               testes pytest
 run.bat              início com um clique no Windows
 reset_master.py      recuperação local da senha do master
+verify_audit.py      verificador independente da cadeia do audit log (só leitura)
 Dockerfile, docker-compose.yml
 ```
 
@@ -200,9 +205,6 @@ Dockerfile, docker-compose.yml
 
 Ideias ainda não construídas, em ordem aproximada de prioridade:
 
-- Histórico de edição com o valor antigo e o novo de cada campo alterado.
-- Um resumo imprimível de "expiring soon".
-- Um script independente que verifica a cadeia de hash do audit log fora do app, a partir do CSV exportado.
 - Autenticação em dois fatores (TOTP) opcional para administradores.
 
 ## Segurança

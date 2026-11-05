@@ -14,6 +14,7 @@ from ..models import (
     CRITICALITIES,
     CRITICALITY_LABELS,
     Access,
+    AccessChange,
     AccessRenewal,
     AuditLog,
 )
@@ -28,6 +29,7 @@ FIELDS = (
 )
 OPTIONAL_FIELDS = ("ticket", "notes")
 TRAIL_LIMIT = 100
+HISTORY_LIMIT = 200
 CLOSABLE = (STATUS_ACTIVE, STATUS_EXPIRING, STATUS_SCHEDULED)
 COPY_FIELDS = (
     "name", "email", "company", "user_type", "access_type", "system", "criticality",
@@ -119,6 +121,20 @@ def archive():
     return _list_page(True)
 
 
+@bp.get("/digest")
+def digest():
+    now = utcnow()
+    soon = _soon_days()
+    return render_template(
+        "access/digest.html",
+        expiring=db.session.scalars(services.expiring_select(now, soon)).all(),
+        pending=db.session.scalars(reviews.pending_select(now)).all(),
+        soon_days=soon,
+        generated_at=now,
+        now=now,
+    )
+
+
 @bp.get("/export.csv")
 def export_csv():
     now = utcnow()
@@ -195,12 +211,20 @@ def detail(access_id):
         .order_by(AuditLog.id.desc())
         .limit(TRAIL_LIMIT)
     ).all()
+    history = db.session.scalars(
+        select(AccessChange)
+        .where(AccessChange.access_id == access.id)
+        .order_by(AccessChange.id.desc())
+        .limit(HISTORY_LIMIT)
+    ).all()
     return render_template(
         "access/detail.html",
         access=access,
         status=status,
         can_close=status in CLOSABLE,
         trail=trail,
+        history=history,
+        field_labels=services.FIELD_LABELS,
         review_entries=reviews.review_history(access.id),
         needs_review=status == STATUS_EXPIRED and reviews.awaiting_review(access, now),
         now=now,
@@ -225,12 +249,27 @@ def edit(access_id):
                 "The start must be before the current end date."
             ]
         else:
-            changed = [n for n in FIELDS if getattr(access, n) != _value(form, n)]
+            changes = [
+                (name, getattr(access, name), _value(form, name))
+                for name in FIELDS
+                if getattr(access, name) != _value(form, name)
+            ]
             if access.start_at != start:
-                changed.append("start_at")
-            if not changed:
+                changes.append(("start_at", access.start_at, start))
+            if not changes:
                 flash("No changes to save.", "info")
                 return _detail(access)
+            changed = [name for name, _old, _new in changes]
+            for name, old, new in changes:
+                db.session.add(
+                    AccessChange(
+                        access_id=access.id,
+                        field=name,
+                        old_value=services.history_text(name, old),
+                        new_value=services.history_text(name, new),
+                        changed_by=current_user.username,
+                    )
+                )
             for name in FIELDS:
                 setattr(access, name, _value(form, name))
             access.start_at = start

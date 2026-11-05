@@ -13,7 +13,8 @@
 {% if counts.expiring %}
 <div class="alert warn" role="alert">
   <strong>{{ counts.expiring }}</strong> {{ "access ends" if counts.expiring == 1 else "accesses end" }} within {{ soon_days }} days.
-  <a href="{{ url_for('access.index', status='expiring', sort='end', dir='asc') }}">View expiring accesses</a>
+  <a href="{{ url_for('access.index', status='expiring', sort='end', dir='asc') }}">View expiring accesses</a> ·
+  <a href="{{ url_for('access.digest') }}">Printable summary</a>
 </div>
 {% endif %}
 {% if overdue_campaigns %}
@@ -22,7 +23,13 @@
   <a href="{{ url_for('review.campaigns') }}">View campaigns</a>
 </div>
 {% endif %}
-{% if not pending and not counts.expiring and not overdue_campaigns %}
+{% if integrity_due %}
+<div class="alert warn" role="alert">
+  {% if integrity_due.never %}The audit log has <strong>never been verified</strong>.{% else %}The audit log was last verified <strong>{{ integrity_due.days }} days ago</strong>.{% endif %}
+  <a href="{{ url_for('main.audit_integrity') }}">Verify integrity</a>
+</div>
+{% endif %}
+{% if not pending and not counts.expiring and not overdue_campaigns and not integrity_due %}
 <div class="alert ok">Nothing needs attention right now.</div>
 {% endif %}
 
