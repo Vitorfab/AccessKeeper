@@ -14,6 +14,7 @@
   <h1>{{ "Archive" if archived else "Accesses" }}</h1>
   <div class="actions">
     {% if archived %}<a class="btn" href="{{ url_for('access.index') }}">Back to accesses</a>{% else %}<a class="btn" href="{{ url_for('access.archive') }}">Archive</a>{% endif %}
+    <a class="btn" href="{{ url_for('access.digest') }}">Expiring summary</a>
     <a class="btn" href="{{ url_for('access.export_csv', **dict(base_args, **({'archived': 1} if archived else {}))) }}">Export CSV</a>
     {% if current_user.is_admin %}<a class="btn primary" href="{{ url_for('access.create') }}">New access</a>{% endif %}
   </div>

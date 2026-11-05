@@ -48,6 +48,7 @@ class Config:
     HIGH_MAX_DAYS = max(1, _env_int("HIGH_MAX_DAYS", 90))
 
     AUDIT_HASH_KEY = _env("AUDIT_HASH_KEY", "")
+    INTEGRITY_REMINDER_DAYS = max(0, _env_int("INTEGRITY_REMINDER_DAYS", 30))
 
     MIN_PASSWORD_LENGTH = _env_int("MIN_PASSWORD_LENGTH", 12)
     MAX_LOGIN_ATTEMPTS = _env_int("MAX_LOGIN_ATTEMPTS", 5)

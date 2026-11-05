@@ -29,6 +29,8 @@ There is no request or approval workflow, no integration with Microsoft Graph, S
 - **Review campaigns**: name, start date, due date and a scope (status, internal/external, criticality, company, system). The matching accesses are copied into the campaign and each gets an outcome: *Removal confirmed*, *Renewed* or *Kept with justification*. Progress (for example 8 of 12) and the overdue state are shown.
 - **Bulk review**: tick several pending items of a campaign and record one outcome for all of them. Every item is checked first; if one fails nothing changes and each problem is listed. *Removal confirmed* asks for a confirmation screen because it cannot be undone.
 - **Campaign report**: a printable page and a CSV with the scope, dates, totals per outcome and every item with its outcome, justification, reviewer and date. Available to administrators and viewers.
+- **Edit history**: every edit keeps the previous and the new value of each changed field, with who and when. It cannot be changed or deleted.
+- **Expiring summary**: a printable page with the accesses ending soon and the expired ones still awaiting review. Available to administrators and viewers.
 - **Archive**: closed accesses, kept out of the main list but always searchable.
 - **Automatic sign-out after 5 idle minutes** (configurable). A notice appears 30 seconds before: move the mouse, click or type to stay signed in.
 - **Audit log** (admin only): append-only, filterable, exportable to CSV. New events are sealed in a **hash chain**, and the **Verify integrity** screen checks it.
@@ -132,7 +134,9 @@ Every new audit event stores the hash of the event before it, plus its own hash:
 - Events recorded **before** the chain existed (older versions) are never rewritten. When you upgrade, the app writes a start event with their count and a SHA-256 fingerprint, so changing them later is still detected. They show as "before the chain".
 - The screen shows the **top of the chain** (the last hash, with its event number and time). Copy it somewhere outside the app now and then, for example in a ticket or email.
 - **Keep your `.env` together with the database backup.** The chain key comes from it. If `SECRET_KEY` (or `AUDIT_HASH_KEY`) changes, the check says it cannot verify instead of accusing tampering.
-- The audit CSV includes the previous hash and the hash of every event, so the chain can be verified outside the app.
+- The audit CSV includes the previous hash and the hash of every event.
+- **Verify without the app:** `verify_audit.bat` (or `python verify_audit.py`) checks the database file directly, read-only, using only the Python standard library. It exits with 0 (intact), 1 (tampering found) or 2 (could not verify), so it also works in scheduled jobs. Add `--top <hash>` to compare with the top of the chain you copied earlier, and `--db <file>` for another database. In Docker: `docker compose exec accesskeeper python verify_audit.py`.
+- The dashboard reminds administrators when the log was not verified for `INTEGRITY_REMINDER_DAYS` days (default 30, `0` turns it off).
 
 ## Database backup
 
@@ -140,7 +144,7 @@ AccessKeeper uses one SQLite file: `instance/accesskeeper.db` (in Docker, inside
 
 ## Upgrading from an earlier version
 
-Replace the project files and keep your `instance/` folder and `.env`. On the first start the app adds the new tables and columns by itself and keeps your data. From 3.1 to 3.2: every existing access becomes **Standard**, and the audit hash chain starts (a start event records how many older events exist and their fingerprint). You do not have to delete or change anything. Optionally add `CRITICAL_MAX_DAYS`, `HIGH_MAX_DAYS` and `AUDIT_HASH_KEY` to your `.env`; the defaults work. Earlier upgrades (3.0 to 3.1) also built the systems catalog and closed accesses already reviewed as removed. The old `SESSION_MINUTES` setting is no longer used: `IDLE_TIMEOUT_MINUTES=5` is the default.
+Replace the project files and keep your `instance/` folder and `.env`. On the first start the app adds the new tables and columns by itself and keeps your data. From 3.2 to 3.3: a table for the edit history is added; nothing else changes. From 3.1 to 3.2: every existing access becomes **Standard**, and the audit hash chain starts (a start event records how many older events exist and their fingerprint). You do not have to delete or change anything. Optionally add `CRITICAL_MAX_DAYS`, `HIGH_MAX_DAYS` and `AUDIT_HASH_KEY` to your `.env`; the defaults work. Earlier upgrades (3.0 to 3.1) also built the systems catalog and closed accesses already reviewed as removed. The old `SESSION_MINUTES` setting is no longer used: `IDLE_TIMEOUT_MINUTES=5` is the default.
 
 ## Tests
 
@@ -193,6 +197,7 @@ accesskeeper/
 tests/               pytest suite
 run.bat              one-click start on Windows
 reset_master.py      local master password recovery
+verify_audit.py      standalone audit chain verifier (read-only)
 Dockerfile, docker-compose.yml
 ```
 
@@ -200,9 +205,6 @@ Dockerfile, docker-compose.yml
 
 Ideas that are not built yet, in rough priority order:
 
-- Edit history with the old and new value of each changed field.
-- A printable "expiring soon" digest.
-- A standalone script that verifies the audit hash chain outside the app, from the CSV export.
 - Optional TOTP two-factor authentication for administrators.
 
 ## Security

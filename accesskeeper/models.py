@@ -197,6 +197,18 @@ class Access(db.Model):
         return STATUS_ACTIVE
 
 
+class AccessChange(db.Model):
+    __tablename__ = "access_changes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    access_id = db.Column(db.Integer, db.ForeignKey("accesses.id"), nullable=False, index=True)
+    field = db.Column(db.String(40), nullable=False)
+    old_value = db.Column(db.String(2000), nullable=False, default="")
+    new_value = db.Column(db.String(2000), nullable=False, default="")
+    changed_by = db.Column(db.String(64), nullable=False)
+    changed_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+
 class SystemEntry(db.Model):
     __tablename__ = "systems"
 
@@ -298,6 +310,7 @@ _protect(AuditLog, ("UPDATE", "DELETE"), "audit_log is append-only")
 _protect(Access, ("DELETE",), "accesses are never deleted")
 _protect(SystemEntry, ("DELETE",), "systems are never deleted, disable them instead")
 _protect(AccessRenewal, ("UPDATE", "DELETE"), "renewal history is append-only")
+_protect(AccessChange, ("UPDATE", "DELETE"), "change history is append-only")
 _protect(AccessReview, ("DELETE",), "review history is never deleted")
 _protect(ReviewCampaign, ("DELETE",), "campaigns are never deleted")
 _protect(CampaignItem, ("DELETE",), "campaign items are never deleted")

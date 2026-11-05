@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_macros.html" import criticality_badge %}
+{% block title %}Expiring summary{% endblock %}
+{% block content %}
+<div class="page-head no-print">
+  <h1>Expiring summary</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('access.index') }}">Back to accesses</a>
+    <button type="button" class="btn primary" data-print>Print</button>
+  </div>
+</div>
+
+<article class="report">
+  <header>
+    <p class="report-kicker">AccessKeeper · Expiring accesses summary</p>
+    <h1 class="report-title">Accesses ending within {{ soon_days }} days</h1>
+  </header>
+  <dl class="facts">
+    <dt>Generated</dt><dd>{{ generated_at|local }} by {{ current_user.username }} ({{ config['TIMEZONE'] }})</dd>
+    <dt>Expiring soon</dt><dd>{{ expiring|length }}</dd>
+    <dt>Expired, awaiting review</dt><dd>{{ pending|length }}</dd>
+  </dl>
+
+  <h2 class="section-title">Expiring soon</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Company</th><th>System</th><th>Criticality</th><th>Ends</th><th>Left</th><th>Authorized by</th><th>Ticket</th></tr></thead>
+      <tbody>
+        {% for a in expiring %}
+        <tr>
+          <td>{{ a.name }}</td>
+          <td>{{ a.company }}</td>
+          <td>{{ a.system }}</td>
+          <td>{{ criticality_badge(a.criticality) }}</td>
+          <td class="nowrap">{{ a.end_at|local }}</td>
+          <td class="nowrap">{{ a.end_at|reltime(now) }}</td>
+          <td>{{ a.authorized_by }}</td>
+          <td>{{ a.ticket or "" }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="muted">No access ends within {{ soon_days }} days.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="section-title">Expired, awaiting review</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Company</th><th>System</th><th>Criticality</th><th>Ended</th><th>Authorized by</th><th>Ticket</th></tr></thead>
+      <tbody>
+        {% for a in pending %}
+        <tr>
+          <td>{{ a.name }}</td>
+          <td>{{ a.company }}</td>
+          <td>{{ a.system }}</td>
+          <td>{{ criticality_badge(a.criticality) }}</td>
+          <td class="nowrap">{{ a.end_at|local }}</td>
+          <td>{{ a.authorized_by }}</td>
+          <td>{{ a.ticket or "" }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="muted">Nothing is waiting for review.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/print.js') }}" defer></script>{% endblock %}
