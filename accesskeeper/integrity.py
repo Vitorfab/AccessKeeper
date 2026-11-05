@@ -144,6 +144,23 @@ def summary():
     }
 
 
+def last_check():
+    return db.session.scalars(
+        select(AuditLog).where(AuditLog.action == CHECK_ACTION).order_by(AuditLog.id.desc()).limit(1)
+    ).first()
+
+
+def reminder(now, days):
+    """None when nothing is due; otherwise how long the audit log has gone unverified."""
+    if days <= 0 or db.session.execute(select(audit_chain.c.id)).first() is None:
+        return None
+    last = last_check()
+    if last is None:
+        return {"never": True, "days": None}
+    age = (now - last.timestamp).days
+    return {"never": False, "days": age} if age >= days else None
+
+
 @dataclass
 class Verification:
     status: str

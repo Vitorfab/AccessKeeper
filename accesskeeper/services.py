@@ -24,7 +24,7 @@ from .models import (
     CampaignItem,
     SystemEntry,
 )
-from .utils import local_dt, to_utc
+from .utils import local_dt, to_utc, utc_text
 
 LONG_DURATION_DAYS = 365
 PAGE_SIZE = 25
@@ -111,6 +111,44 @@ def status_counts(now, soon_days):
         for status in STATUSES
     ]
     return dict(zip(STATUSES, db.session.execute(select(*columns)).one()))
+
+
+FIELD_LABELS = {
+    "name": "Full name",
+    "email": "Email",
+    "company": "Company",
+    "user_type": "User type",
+    "access_type": "Access type",
+    "system": "System / target",
+    "criticality": "Criticality",
+    "description": "Description",
+    "justification": "Justification",
+    "authorized_by": "Authorized by",
+    "ticket": "Ticket",
+    "notes": "Notes",
+    "start_at": "Start",
+}
+
+
+def history_text(field, value):
+    """Readable text for one value in the change history."""
+    if value is None or value == "":
+        return ""
+    if field == "start_at":
+        return utc_text(value)
+    if field == "criticality":
+        return CRITICALITY_LABELS.get(value, value)
+    if field == "user_type":
+        return str(value).capitalize()
+    return str(value)
+
+
+def expiring_select(now, soon_days):
+    return (
+        select(Access)
+        .where(status_clause(STATUS_EXPIRING, now, soon_days))
+        .order_by(Access.end_at.asc(), Access.id.asc())
+    )
 
 
 def criticality_counts(now, soon_days):

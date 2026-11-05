@@ -8,11 +8,11 @@ from flask import (
     request,
     url_for,
 )
-from sqlalchemy import select
+from flask_login import current_user
 
 from .. import audit, integrity, reviews, services
 from ..extensions import db
-from ..models import CAMPAIGN_OVERDUE, AuditLog
+from ..models import CAMPAIGN_OVERDUE
 from ..permissions import admin_required
 from ..utils import local_dt, utcnow
 
@@ -31,6 +31,11 @@ def index():
         pending=services.pending_review_count(now),
         upcoming=services.upcoming(now),
         campaigns=campaigns,
+        integrity_due=(
+            integrity.reminder(now, current_app.config["INTEGRITY_REMINDER_DAYS"])
+            if current_user.is_admin
+            else None
+        ),
         overdue_campaigns=sum(1 for r in campaigns if r["state"] == CAMPAIGN_OVERDUE),
         soon_days=soon,
         now=now,
@@ -78,14 +83,8 @@ def audit_export():
 @bp.get("/audit/integrity")
 @admin_required
 def audit_integrity():
-    last_check = db.session.scalars(
-        select(AuditLog)
-        .where(AuditLog.action == integrity.CHECK_ACTION)
-        .order_by(AuditLog.id.desc())
-        .limit(1)
-    ).first()
     return render_template(
-        "audit_integrity.html", chain=integrity.summary(), last_check=last_check
+        "audit_integrity.html", chain=integrity.summary(), last_check=integrity.last_check()
     )
 
 

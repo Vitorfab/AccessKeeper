@@ -9,7 +9,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY accesskeeper ./accesskeeper
-COPY wsgi.py reset_master.py ./
+COPY wsgi.py reset_master.py verify_audit.py ./
 
 RUN useradd --system --no-create-home --uid 10001 appuser \
     && mkdir -p /app/instance \
