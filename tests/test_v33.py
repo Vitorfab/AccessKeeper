@@ -43,7 +43,9 @@ def test_edit_records_old_and_new_value_per_changed_field(app, users):
     access_id = add_access(app, "Ana Souza", company="Contoso", system="Firewall", authorized_by="Boss")
     with app.app_context():
         start = db.session.get(Access, access_id).start_at
-    data = dict(FORM, company="Fabrikam", ticket="CHG-7", start_at=local_input(start))
+    with app.app_context():
+        start_text = local_input(start)
+    data = dict(FORM, company="Fabrikam", ticket="CHG-7", start_at=start_text)
     assert users["boss"].post(f"/access/{access_id}/edit", data=data).status_code == 302
     with app.app_context():
         rows = {c.field: c for c in AccessChange.query.filter_by(access_id=access_id)}

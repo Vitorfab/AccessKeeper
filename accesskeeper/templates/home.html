@@ -29,7 +29,7 @@
   <a href="{{ url_for('main.audit_integrity') }}">Verify integrity</a>
 </div>
 {% endif %}
-{% if not pending and not counts.expiring and not overdue_campaigns and not integrity_due %}
+{% if not pending and not counts.expiring and not overdue_campaigns %}
 <div class="alert ok">Nothing needs attention right now.</div>
 {% endif %}
 
