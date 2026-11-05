@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_forms.html" import field %}
+{% from "_macros.html" import ends %}
+{% block title %}Record review{% endblock %}
+{% block main_class %} medium{% endblock %}
+{% block content %}
+<h1>Record review</h1>
+<section class="card">
+  <p><strong><a href="{{ url_for('access.detail', access_id=access.id) }}">{{ access.name }}</a></strong> <span class="muted">· {{ access.company }} · {{ access.system }} · {{ access.access_type }}</span></p>
+  <p class="muted">Ends: {{ ends(access, now) }}{% if campaign %} · Campaign: {{ campaign.name }}{% endif %}</p>
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ field(form.outcome) }}
+    {{ field(form.justification, hint="Required to keep an access. Do not store passwords or secrets.") }}
+    <div class="actions">
+      <button type="submit" class="btn primary">Record review</button>
+      <a class="btn" href="{{ url_for('review.campaign_detail', campaign_id=campaign.id) if campaign else url_for('review.queue') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+<ul class="muted">
+  <li><strong>Removal confirmed:</strong> you checked that the access is gone in the real system. The record is then marked as Closed and can no longer be renewed or edited. To grant the access again, register a new one.</li>
+  {% if campaign %}<li><strong>Renewed:</strong> <a href="{{ url_for('access.renew', access_id=access.id) }}">renew the access</a> first, then record this outcome.</li>{% endif %}
+  <li><strong>Kept with justification:</strong> the access stays as it is and you explain why.</li>
+  {% if not campaign %}<li>To extend an expired access instead, use <a href="{{ url_for('access.renew', access_id=access.id) }}">Renew</a>. It leaves the queue by itself.</li>{% endif %}
+</ul>
+{% endblock %}

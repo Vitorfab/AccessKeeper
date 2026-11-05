@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_forms.html" import field %}
+{% block title %}First-time setup{% endblock %}
+{% block main_class %} narrow{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <h1>First-time setup</h1>
+  <p class="muted">Create the first administrator. This page disables itself once a user exists.</p>
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ field(form.username, hint="3-32 characters: lowercase letters, digits, . - _", autocomplete="username") }}
+    {{ field(form.password, hint="At least " ~ min_length ~ " characters.", autocomplete="new-password") }}
+    {{ field(form.confirm, autocomplete="new-password") }}
+    <button class="btn primary block" type="submit">Create administrator</button>
+  </form>
+</section>
+{% endblock %}

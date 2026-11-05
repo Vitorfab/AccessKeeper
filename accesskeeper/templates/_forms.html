@@ -1,0 +1,28 @@
+{% macro field(f, hint="", autocomplete="", list="") %}
+{% set attrs = {} %}
+{% if autocomplete %}{% set _ = attrs.update({"autocomplete": autocomplete}) %}{% endif %}
+{% if list %}{% set _ = attrs.update({"list": list}) %}{% endif %}
+<div class="field{{ ' has-error' if f.errors else '' }}">
+  {{ f.label }}
+  {{ f(**attrs) }}
+  {% if hint %}<small class="hint">{{ hint }}</small>{% endif %}
+  {% for message in f.errors %}<small class="error">{{ message }}</small>{% endfor %}
+</div>
+{% endmacro %}
+
+{% macro duration_shortcuts(end_id, label="Duration", start_input="", start="", base="", warn_days=365, level_input="", level="") %}
+<div class="shortcuts" data-duration data-end="{{ end_id }}" data-warn-days="{{ warn_days }}"
+  data-critical-days="{{ config['CRITICAL_MAX_DAYS'] }}" data-high-days="{{ config['HIGH_MAX_DAYS'] }}"
+  {%- if level_input %} data-level-input="{{ level_input }}"{% endif %}
+  {%- if level %} data-level="{{ level }}"{% endif %}
+  {%- if start_input %} data-start-input="{{ start_input }}"{% endif %}
+  {%- if start %} data-start="{{ start }}"{% endif %}
+  {%- if base %} data-base="{{ base }}"{% endif %}>
+  <span class="muted">{{ label }}</span>
+  {% for text, hours in [("4h", 4), ("8h", 8), ("24h", 24), ("7d", 168), ("14d", 336), ("30d", 720), ("90d", 2160)] %}
+  <button type="button" class="btn small" data-hours="{{ hours }}">{{ text }}</button>
+  {% endfor %}
+  <small class="warning" data-warning hidden>This access lasts more than 1 year. Consider a shorter duration.</small>
+  <small class="warning" data-level-warning hidden></small>
+</div>
+{% endmacro %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_forms.html" import field %}
+{% block title %}New campaign{% endblock %}
+{% block main_class %} medium{% endblock %}
+{% block content %}
+<h1>New review campaign</h1>
+<p class="muted">The accesses that match the scope today are copied into the campaign. Accesses registered later are not added. Then record an outcome for each one.</p>
+<form method="post" class="card" novalidate>
+  {{ form.hidden_tag() }}
+  {{ field(form.name, autocomplete="off") }}
+  <div class="form-grid">
+    {{ field(form.start_date) }}
+    {{ field(form.due_date) }}
+  </div>
+  <h2>Scope</h2>
+  <div class="form-grid">
+    {{ field(form.status) }}
+    {{ field(form.user_type) }}
+    {{ field(form.criticality) }}
+    {{ field(form.company) }}
+    {{ field(form.system) }}
+  </div>
+  <div class="actions">
+    <button type="submit" class="btn primary">Create campaign</button>
+    <a class="btn" href="{{ url_for('review.campaigns') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

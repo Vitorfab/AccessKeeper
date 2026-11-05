@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "_forms.html" import field, duration_shortcuts %}
+{% set no_secrets = "Do not store passwords or secrets." %}
+{% block title %}{{ "New access" if mode == "create" else "Edit access" }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ "New access" if mode == "create" else "Edit access" }}</h1>
+</div>
+<p class="muted">AccessKeeper only records accesses you already granted. It never changes anything in Entra ID, FortiGate or any other system.</p>
+
+<form method="post" class="card form-grid" novalidate>
+  {{ form.hidden_tag() }}
+  {{ field(form.name, autocomplete="off") }}
+  {{ field(form.email, autocomplete="off") }}
+  {{ field(form.company, autocomplete="off") }}
+  {{ field(form.user_type) }}
+  {{ field(form.system, hint="Pick from the catalog. A missing system can be added by an administrator under Systems.") }}
+  {{ field(form.access_type, hint="Start typing to reuse a value already registered. " ~ no_secrets, autocomplete="off", list="access-type-options") }}
+  <datalist id="access-type-options">{% for v in access_types %}<option value="{{ v }}">{% endfor %}</datalist>
+  <div class="span-2">{{ field(form.criticality, hint="You choose the level. Critical accesses lasting more than " ~ config['CRITICAL_MAX_DAYS'] ~ " days and High accesses lasting more than " ~ config['HIGH_MAX_DAYS'] ~ " days show a warning (it never blocks).") }}</div>
+  <div class="span-2">{{ field(form.description, hint="What was granted, in plain words. " ~ no_secrets) }}</div>
+  <div class="span-2">{{ field(form.justification, hint="Why this access was needed. " ~ no_secrets) }}</div>
+  {{ field(form.authorized_by, autocomplete="off") }}
+  {{ field(form.ticket, autocomplete="off") }}
+  {{ field(form.start_at) }}
+  {% if mode == "create" %}
+  {{ field(form.end_at) }}
+  <div class="span-2">
+    {{ duration_shortcuts("end_at", start_input="start_at", warn_days=warn_days, level_input="criticality") }}
+  </div>
+  {% else %}
+  <div class="field">
+    <label>End</label>
+    <p class="static">{{ access.end_at|local }}</p>
+    <small class="hint">To change the end date, use Renew on the access page so the history is kept.</small>
+  </div>
+  {% endif %}
+  <div class="span-2">{{ field(form.notes, hint=no_secrets) }}</div>
+  <div class="span-2 actions">
+    <button type="submit" class="btn primary">{{ "Register access" if mode == "create" else "Save changes" }}</button>
+    <a class="btn" href="{{ url_for('access.detail', access_id=access.id) if access else url_for('access.index') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/access_form.js') }}" defer></script>{% endblock %}

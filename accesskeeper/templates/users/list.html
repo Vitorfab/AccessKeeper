@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Users</h1>
+  <a class="btn primary" href="{{ url_for('users.create') }}">New user</a>
+</div>
+{% if not actor_is_master %}
+<p class="muted">Only the master administrator can create or manage other administrators. You can manage viewer accounts.</p>
+{% endif %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Username</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Created</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}{% if u.id == master %} <span class="badge role-master">Master</span>{% endif %}{% if u.id == current_user.id %} <span class="muted">(you)</span>{% endif %}</td>
+        <td><span class="badge role-{{ u.role }}">{{ u.role }}</span></td>
+        <td>
+          {% if not u.enabled %}<span class="badge bad">Disabled</span>
+          {% elif u.is_locked(now) %}<span class="badge warn">Locked</span>
+          {% else %}<span class="badge ok">Enabled</span>{% endif %}
+        </td>
+        <td class="nowrap">{{ u.last_login_at|local if u.last_login_at else "Never" }}</td>
+        <td class="nowrap">{{ u.created_at|local("%Y-%m-%d") }}</td>
+        <td>
+          {% if u.id == current_user.id %}
+          <a class="btn small" href="{{ url_for('auth.change_password') }}">Change my password</a>
+          {% elif managed[u.id] %}
+          <div class="actions">
+            {% if actor_is_master %}
+            <form method="post" action="{{ url_for('users.change_role', user_id=u.id) }}" class="inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <select name="role" aria-label="Role for {{ u.username }}">
+                {% for r in roles %}<option value="{{ r }}"{% if r == u.role %} selected{% endif %}>{{ r }}</option>{% endfor %}
+              </select>
+              <button type="submit" class="btn small">Save role</button>
+            </form>
+            {% endif %}
+            <a class="btn small" href="{{ url_for('users.reset_password', user_id=u.id) }}">Reset password</a>
+            <form method="post" action="{{ url_for('users.toggle', user_id=u.id) }}" class="inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn small {{ 'danger' if u.enabled else '' }}">{{ 'Disable' if u.enabled else 'Enable' }}</button>
+            </form>
+          </div>
+          {% else %}
+          <span class="muted">{{ "Protected master account" if u.id == master else "Managed by the master only" }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

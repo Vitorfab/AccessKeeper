@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt pyflakes
+      - name: Static check
+        run: python -m pyflakes accesskeeper tests *.py
+      - name: Run tests
+        run: python -m pytest -q
+
+  docker:
+    name: Docker image builds and starts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the image
+        run: docker build -t accesskeeper:ci .
+      - name: Start the container and check the login page
+        run: |
+          docker run -d --name accesskeeper -p 127.0.0.1:5000:5000 \
+            -e SECRET_KEY="$(openssl rand -hex 32)" accesskeeper:ci
+          for attempt in $(seq 1 30); do
+            if curl -fsSL -o /dev/null http://127.0.0.1:5000/login; then
+              echo "The app answered after ${attempt}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs accesskeeper
+          exit 1

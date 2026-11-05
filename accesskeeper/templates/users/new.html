@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_forms.html" import field %}
+{% block title %}New user{% endblock %}
+{% block main_class %} narrow{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <h1>New user</h1>
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ field(form.username, hint="3-32 characters: lowercase letters, digits, . - _", autocomplete="off") }}
+    {{ field(form.role, hint=('' if is_master else 'Only the master administrator can create administrators.')) }}
+    {{ field(form.password, hint="At least " ~ min_length ~ " characters.", autocomplete="new-password") }}
+    {{ field(form.confirm, autocomplete="new-password") }}
+    <button class="btn primary" type="submit">Create user</button>
+    <a class="btn" href="{{ url_for('users.index') }}">Cancel</a>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campaign_badge, criticality_badge %}
+{% block title %}Report: {{ campaign.name }}{% endblock %}
+{% block content %}
+<div class="page-head no-print">
+  <h1>Campaign report</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('review.campaign_detail', campaign_id=campaign.id) }}">Back to campaign</a>
+    <a class="btn" href="{{ url_for('review.campaign_report_csv', campaign_id=campaign.id) }}">Export CSV</a>
+    <button type="button" class="btn primary" data-print>Print</button>
+  </div>
+</div>
+
+<article class="report">
+  <header>
+    <p class="report-kicker">AccessKeeper · Access review report</p>
+    <h1 class="report-title">{{ campaign.name }} {{ campaign_badge(row.state) }}</h1>
+  </header>
+  <dl class="facts">
+    <dt>Scope</dt><dd>{{ scope }}</dd>
+    <dt>Period</dt><dd>{{ campaign.start_at|local("%Y-%m-%d") }} → {{ campaign.due_at|local("%Y-%m-%d") }}</dd>
+    <dt>Created</dt><dd>{{ campaign.created_at|local }} by {{ campaign.created_by }}</dd>
+    {% if campaign.closed_at %}<dt>Closed</dt><dd>{{ campaign.closed_at|local }} by {{ campaign.closed_by }}</dd>{% endif %}
+    <dt>Report generated</dt><dd>{{ generated_at|local }} by {{ current_user.username }} ({{ config['TIMEZONE'] }})</dd>
+    <dt>Progress</dt><dd>{{ row.done }} of {{ row.total }} reviewed</dd>
+  </dl>
+
+  <h2 class="section-title">Totals</h2>
+  <p><strong>{{ row.total }} {{ "item" if row.total == 1 else "items" }}:</strong>
+    {% for label, count in totals %}{{ count }} {{ label|lower }}{{ ", " if not loop.last }}{% endfor %}.</p>
+
+  <h2 class="section-title">Items</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Company</th><th>System</th><th>Access type</th><th>Criticality</th><th>Status at snapshot</th><th>Outcome</th><th>Justification</th><th>Reviewed by</th><th>Reviewed at</th></tr>
+      </thead>
+      <tbody>
+        {% for item, access in items %}
+        <tr>
+          <td>{{ access.name }}</td>
+          <td>{{ access.company }}</td>
+          <td>{{ access.system }}</td>
+          <td>{{ access.access_type }}</td>
+          <td>{{ criticality_badge(access.criticality) }}</td>
+          <td>{{ STATUS_LABELS[item.status_snapshot] }}</td>
+          <td>{% if item.outcome %}{{ OUTCOME_LABELS[item.outcome] }}{% else %}<span class="muted">Pending</span>{% endif %}</td>
+          <td class="prewrap">{{ item.justification or "" }}</td>
+          <td>{{ item.reviewed_by or "" }}</td>
+          <td class="nowrap">{{ item.reviewed_at|local if item.reviewed_at else "" }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="muted">This campaign has no items.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/print.js') }}" defer></script>{% endblock %}

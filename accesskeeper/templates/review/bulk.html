@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Review selected items{% endblock %}
+{% block main_class %} medium{% endblock %}
+{% block content %}
+{% if problems %}
+<h1>Nothing was changed</h1>
+<p class="muted">Some of the selected items cannot take the outcome <strong>{{ OUTCOME_LABELS[outcome] }}</strong>. Fix or unselect them and try again.</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Item</th><th>Problem</th></tr></thead>
+    <tbody>
+      {% for label, message in problems %}<tr><td>{{ label }}</td><td>{{ message }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="actions top-gap">
+  <a class="btn primary" href="{{ url_for('review.campaign_detail', campaign_id=campaign.id) }}">Back to the campaign</a>
+</div>
+{% else %}
+<h1>Confirm removal</h1>
+<div class="alert bad" role="alert">
+  <strong>Removal confirmed closes {{ items|length }} {{ "access" if items|length == 1 else "accesses" }} for good.</strong>
+  Closed accesses become read-only and cannot be renewed or reopened. This cannot be undone. Confirm only if the access is really gone from the real systems.
+</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Name</th><th>Company</th><th>System</th><th>Access type</th></tr></thead>
+    <tbody>
+      {% for item in items %}
+      <tr><td>{{ item.access.name }}</td><td>{{ item.access.company }}</td><td>{{ item.access.system }}</td><td>{{ item.access.access_type }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<form method="post" action="{{ url_for('review.campaign_bulk', campaign_id=campaign.id) }}" class="top-gap">
+  {{ form.hidden_tag() }}
+  <input type="hidden" name="outcome" value="{{ outcome }}">
+  <input type="hidden" name="justification" value="{{ form.justification.data or '' }}">
+  <input type="hidden" name="confirm" value="1">
+  {% for item_id in item_ids %}<input type="hidden" name="item_ids" value="{{ item_id }}">{% endfor %}
+  <div class="actions">
+    <button type="submit" class="btn danger">Confirm removal of {{ items|length }}</button>
+    <a class="btn" href="{{ url_for('review.campaign_detail', campaign_id=campaign.id) }}">Cancel</a>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

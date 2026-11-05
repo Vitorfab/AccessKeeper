@@ -1,0 +1,31 @@
+services:
+  accesskeeper:
+    build: .
+    ports:
+      - "127.0.0.1:5000:5000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Create a .env file first (see the README), it must define SECRET_KEY}
+      TIMEZONE: ${TIMEZONE:-America/Sao_Paulo}
+      EXPIRING_DAYS: ${EXPIRING_DAYS:-14}
+      CRITICAL_MAX_DAYS: ${CRITICAL_MAX_DAYS:-30}
+      HIGH_MAX_DAYS: ${HIGH_MAX_DAYS:-90}
+      AUDIT_HASH_KEY: ${AUDIT_HASH_KEY:-}
+      CSV_DELIMITER: ${CSV_DELIMITER:-,}
+      MIN_PASSWORD_LENGTH: ${MIN_PASSWORD_LENGTH:-12}
+      IDLE_TIMEOUT_MINUTES: ${IDLE_TIMEOUT_MINUTES:-5}
+      MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS:-5}
+      LOCKOUT_MINUTES: ${LOCKOUT_MINUTES:-15}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    volumes:
+      - accesskeeper-data:/app/instance
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  accesskeeper-data:

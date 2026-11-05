@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_forms.html" import field %}
+{% block title %}Close access{% endblock %}
+{% block main_class %} medium{% endblock %}
+{% block content %}
+<h1>Close access</h1>
+<section class="card">
+  <p><strong>{{ access.name }}</strong> <span class="muted">· {{ access.system }} · {{ access.access_type }}</span></p>
+  <p class="muted">Use this after you removed the access in the real system, before its end date ({{ access.end_at|local }}). AccessKeeper does not remove anything itself. The record is kept and can no longer be edited or renewed.</p>
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ field(form.reason, hint="Do not store passwords or secrets.") }}
+    <div class="actions">
+      <button type="submit" class="btn danger">Close access</button>
+      <a class="btn" href="{{ url_for('access.detail', access_id=access.id) }}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

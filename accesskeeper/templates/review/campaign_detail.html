@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campaign_badge, criticality_badge, progress, status_badge, review_tabs %}
+{% block title %}{{ campaign.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ campaign.name }} {{ campaign_badge(row.state) }}</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('review.campaigns') }}">All campaigns</a>
+    <a class="btn" href="{{ url_for('review.campaign_report', campaign_id=campaign.id) }}">Report</a>
+    {% if current_user.is_admin and not campaign.closed_at %}
+    <form method="post" action="{{ url_for('review.campaign_close', campaign_id=campaign.id) }}" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn danger">Close campaign</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if row.state == "overdue" %}
+<div class="alert bad" role="alert">This campaign is overdue. It was due on {{ campaign.due_at|local("%Y-%m-%d") }}.</div>
+{% elif row.state == "scheduled" %}
+<div class="alert">This campaign starts on {{ campaign.start_at|local("%Y-%m-%d") }}. Reviews can be recorded from that day.</div>
+{% elif row.state == "completed" %}
+<div class="alert ok">Every item was reviewed. You can close the campaign.</div>
+{% endif %}
+
+<section class="card">
+  <dl class="facts">
+    <dt>Progress</dt><dd>{{ progress(row.done, row.total, row.percent) }}</dd>
+    <dt>Period</dt><dd>{{ campaign.start_at|local("%Y-%m-%d") }} → {{ campaign.due_at|local("%Y-%m-%d") }}</dd>
+    <dt>Scope</dt><dd>{{ scope }}</dd>
+    <dt>Created</dt><dd>{{ campaign.created_at|local }} by {{ campaign.created_by }}</dd>
+    {% if campaign.closed_at %}<dt>Closed</dt><dd>{{ campaign.closed_at|local }} by {{ campaign.closed_by }}</dd>{% endif %}
+  </dl>
+</section>
+
+<h2 class="section-title">Items</h2>
+<nav class="tabs" aria-label="Item filter">
+  {% for key, label in [("all", "All"), ("pending", "Pending"), ("reviewed", "Reviewed")] %}
+  <a href="{{ url_for('review.campaign_detail', campaign_id=campaign.id, show=key) }}" class="{{ 'active' if show == key else '' }}">{{ label }}</a>
+  {% endfor %}
+</nav>
+
+{% if can_review %}<form method="post" action="{{ url_for('review.campaign_bulk', campaign_id=campaign.id) }}" id="bulk-form" data-bulk>
+  {{ bulk_form.hidden_tag() }}{% endif %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        {% if can_review %}<th class="check"><input type="checkbox" data-select-all aria-label="Select all pending items on this page"></th>{% endif %}
+        <th>Name</th><th>Company</th><th>System</th><th>Access type</th><th>Criticality</th><th>Status now</th><th>Outcome</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item, status in entries %}
+      <tr>
+        {% if can_review %}<td class="check">{% if not item.outcome %}<input type="checkbox" name="item_ids" value="{{ item.id }}" aria-label="Select {{ item.access.name }}">{% endif %}</td>{% endif %}
+        <td><a href="{{ url_for('access.detail', access_id=item.access.id) }}">{{ item.access.name }}</a></td>
+        <td>{{ item.access.company }}</td>
+        <td>{{ item.access.system }}</td>
+        <td>{{ item.access.access_type }}</td>
+        <td>{{ criticality_badge(item.access.criticality) }}</td>
+        <td>{{ status_badge(status) }}</td>
+        <td>
+          {% if item.outcome %}
+          {{ OUTCOME_LABELS[item.outcome] }}<br><span class="muted small-text">{{ item.reviewed_by }} · {{ item.reviewed_at|local }}</span>
+          {% if item.justification %}<br><span class="small-text prewrap">{{ item.justification }}</span>{% endif %}
+          {% else %}<span class="muted">Pending</span>{% endif %}
+        </td>
+        <td>
+          {% if current_user.is_admin and not item.outcome and not campaign.closed_at %}
+          <a class="btn small" href="{{ url_for('review.campaign_item', campaign_id=campaign.id, item_id=item.id) }}">Review</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="{{ 9 if can_review else 8 }}" class="muted">No items to show.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if can_review %}
+<section class="card bulk">
+  <h2>Review the selected items together</h2>
+  <p class="muted">Applies to the items ticked on this page. Every item is checked first: if one cannot take this outcome, nothing is changed and you see why.</p>
+  <div class="form-grid">
+    <div class="field{{ ' has-error' if bulk_form.outcome.errors else '' }}">
+      {{ bulk_form.outcome.label }}
+      {{ bulk_form.outcome() }}
+    </div>
+    <div class="field span-2">
+      {{ bulk_form.justification.label }}
+      {{ bulk_form.justification(rows=2) }}
+      <small class="hint">Required to keep an access. Do not store passwords or secrets.</small>
+    </div>
+  </div>
+  <div class="actions">
+    <button type="submit" class="btn primary">Apply to selected</button>
+    <span class="muted small-text" data-selected-count>0 selected</span>
+  </div>
+</section>
+</form>
+{% endif %}
+{% if page.pages > 1 %}
+<nav class="pager" aria-label="Pagination">
+  {% if page.has_prev %}<a class="btn small" href="{{ url_for('review.campaign_detail', campaign_id=campaign.id, show=show, page=page.prev_num) }}">Previous</a>{% endif %}
+  <span class="muted">Page {{ page.page }} of {{ page.pages }}</span>
+  {% if page.has_next %}<a class="btn small" href="{{ url_for('review.campaign_detail', campaign_id=campaign.id, show=show, page=page.next_num) }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if can_review %}<script src="{{ url_for('static', filename='js/bulk.js') }}" defer></script>{% endif %}{% endblock %}

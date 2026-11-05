@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Audit log</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('main.audit_integrity') }}">Verify integrity</a>
+    <a class="btn" href="{{ url_for('main.audit_export', **qargs) }}">Export CSV</a>
+  </div>
+</div>
+<p class="muted">Append-only: events cannot be edited or deleted from the app. Times are shown in {{ config['TIMEZONE'] }}; the export also includes UTC.</p>
+
+<form method="get" action="{{ url_for('main.audit_log') }}" class="filters card">
+  <div class="field grow">
+    <label for="q">Search</label>
+    <input type="search" id="q" name="q" value="{{ filters.q }}" maxlength="100" placeholder="Target, details or IP">
+  </div>
+  <div class="field">
+    <label for="action">Action</label>
+    <select id="action" name="action">
+      <option value="">All</option>
+      {% for a in actions %}<option value="{{ a }}"{{ " selected" if filters.action == a }}>{{ a }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="actor">Actor</label>
+    <input type="search" id="actor" name="actor" value="{{ filters.actor }}" maxlength="64">
+  </div>
+  <div class="field">
+    <label for="date_from">From</label>
+    <input type="date" id="date_from" name="date_from" value="{{ filters.date_from.isoformat() if filters.date_from else '' }}">
+  </div>
+  <div class="field">
+    <label for="date_to">To</label>
+    <input type="date" id="date_to" name="date_to" value="{{ filters.date_to.isoformat() if filters.date_to else '' }}">
+  </div>
+  <div class="filter-actions">
+    <button type="submit" class="btn primary">Apply</button>
+    <a class="btn" href="{{ url_for('main.audit_log') }}">Reset</a>
+  </div>
+</form>
+
+<p class="muted">{{ page.total }} {{ "event" if page.total == 1 else "events" }}.</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Details</th><th>IP</th><th>Chain</th></tr>
+    </thead>
+    <tbody>
+      {% for row in page.items %}
+      <tr>
+        <td class="nowrap">{{ row.timestamp|local("%Y-%m-%d %H:%M:%S") }}</td>
+        <td>{{ row.actor }}</td>
+        <td><code>{{ row.action }}</code></td>
+        <td>{{ row.target or "" }}</td>
+        <td>{{ row.details or "" }}</td>
+        <td>{{ row.ip or "" }}</td>
+        <td class="nowrap">{% if row.hash %}<code>{{ row.hash[:10] }}</code>{% else %}<span class="muted small-text">before the chain</span>{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted">No events match these filters.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if page.pages > 1 %}
+<nav class="pager" aria-label="Pagination">
+  {% if page.has_prev %}<a class="btn small" href="{{ url_for('main.audit_log', **dict(qargs, page=page.prev_num)) }}">Previous</a>{% endif %}
+  <span class="muted">Page {{ page.page }} of {{ page.pages }}</span>
+  {% if page.has_next %}<a class="btn small" href="{{ url_for('main.audit_log', **dict(qargs, page=page.next_num)) }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

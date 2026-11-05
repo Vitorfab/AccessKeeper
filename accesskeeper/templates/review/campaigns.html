@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campaign_badge, progress, review_tabs %}
+{% block title %}Review campaigns{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Review</h1>
+  {% if current_user.is_admin %}<a class="btn primary" href="{{ url_for('review.campaign_new') }}">New campaign</a>{% endif %}
+</div>
+{{ review_tabs("campaigns") }}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Campaign</th><th>Period</th><th>Progress</th><th>State</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><a href="{{ url_for('review.campaign_detail', campaign_id=r.campaign.id) }}">{{ r.campaign.name }}</a></td>
+        <td class="nowrap">{{ r.campaign.start_at|local("%Y-%m-%d") }} → {{ r.campaign.due_at|local("%Y-%m-%d") }}</td>
+        <td>{{ progress(r.done, r.total, r.percent) }}</td>
+        <td>{{ campaign_badge(r.state) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No campaigns yet.{% if current_user.is_admin %} <a href="{{ url_for('review.campaign_new') }}">Create the first one</a>.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

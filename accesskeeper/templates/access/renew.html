@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_forms.html" import field, duration_shortcuts %}
+{% block title %}Renew access{% endblock %}
+{% block main_class %} medium{% endblock %}
+{% block content %}
+<h1>Renew access</h1>
+<section class="card">
+  <p><strong>{{ access.name }}</strong> <span class="muted">· {{ access.system }} · {{ access.access_type }}</span></p>
+  <p class="muted">Current end: {{ access.end_at|local }} ({{ config['TIMEZONE'] }}). The previous end date stays in the history.</p>
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ field(form.new_end_at) }}
+    {{ duration_shortcuts("new_end_at", label="Extend by", start=start_input, base=base_input, warn_days=warn_days, level=level) }}
+    {{ field(form.reason, hint="Do not store passwords or secrets.") }}
+    <div class="actions">
+      <button type="submit" class="btn primary">Renew access</button>
+      <a class="btn" href="{{ url_for('access.detail', access_id=access.id) }}">Cancel</a>
+    </div>
+  </form>
+</section>
+<p class="muted">The shortcuts count from the later of the current end date and now.</p>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/access_form.js') }}" defer></script>{% endblock %}

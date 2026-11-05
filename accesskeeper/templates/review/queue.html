@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ends, review_tabs %}
+{% block title %}Review queue{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Review</h1>
+  {% if current_user.is_admin %}<a class="btn primary" href="{{ url_for('review.campaign_new') }}">New campaign</a>{% endif %}
+</div>
+{{ review_tabs("queue") }}
+<p class="muted">Expired accesses stay here until someone confirms what happened to them. Renewing an access also takes it out of the queue. Times are shown in {{ config['TIMEZONE'] }}.</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Company</th><th>System</th><th>Access type</th><th>Expired</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for a in page.items %}
+      <tr>
+        <td><a href="{{ url_for('access.detail', access_id=a.id) }}">{{ a.name }}</a><br><span class="muted small-text">{{ a.email }}</span></td>
+        <td>{{ a.company }}</td>
+        <td>{{ a.system }}</td>
+        <td>{{ a.access_type }}</td>
+        <td class="nowrap">{{ ends(a, now) }}</td>
+        <td>
+          {% if current_user.is_admin %}<a class="btn small" href="{{ url_for('review.queue_item', access_id=a.id) }}">Review</a>{% else %}<span class="muted">Admin only</span>{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">Nothing is waiting for review.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if page.pages > 1 %}
+<nav class="pager" aria-label="Pagination">
+  {% if page.has_prev %}<a class="btn small" href="{{ url_for('review.queue', page=page.prev_num) }}">Previous</a>{% endif %}
+  <span class="muted">Page {{ page.page }} of {{ page.pages }}</span>
+  {% if page.has_next %}<a class="btn small" href="{{ url_for('review.queue', page=page.next_num) }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

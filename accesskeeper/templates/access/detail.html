@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, ends, criticality_badge %}
+{% block title %}{{ access.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ access.name }} {{ status_badge(status) }}</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('access.index') }}">Back to list</a>
+    {% if current_user.is_admin and needs_review %}
+    <a class="btn primary" href="{{ url_for('review.queue_item', access_id=access.id) }}">Review</a>
+    {% endif %}
+    {% if current_user.is_admin and not access.closed_at %}
+    <a class="btn" href="{{ url_for('access.edit', access_id=access.id) }}">Edit</a>
+    <a class="btn" href="{{ url_for('access.renew', access_id=access.id) }}">Renew</a>
+    {% if can_close %}<a class="btn danger" href="{{ url_for('access.close', access_id=access.id) }}">Close</a>{% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{% if access.closed_at %}
+<div class="alert">
+  Closed by <strong>{{ access.closed_by }}</strong> on {{ access.closed_at|local }}, {{ "before" if access.closed_at < access.end_at else "after" }} the end date. Reason: <span class="prewrap">{{ access.close_reason }}</span>
+  <div class="actions">
+    {% if current_user.is_admin %}<a class="btn small" href="{{ url_for('access.create', source=access.id) }}">Register again</a>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+<section class="card">
+  <dl class="facts">
+    <dt>Email</dt><dd>{{ access.email }}</dd>
+    <dt>Company</dt><dd>{{ access.company }}</dd>
+    <dt>User type</dt><dd>{{ access.user_type|capitalize }}</dd>
+    <dt>System / target</dt><dd>{{ access.system }}</dd>
+    <dt>Access type</dt><dd>{{ access.access_type }}</dd>
+    <dt>Criticality</dt><dd>{{ criticality_badge(access.criticality) }}</dd>
+    <dt>Authorized by</dt><dd>{{ access.authorized_by }}</dd>
+    <dt>Ticket</dt><dd>{{ access.ticket or "None" }}</dd>
+    <dt>Start</dt><dd>{{ access.start_at|local }}</dd>
+    <dt>End</dt><dd>{{ ends(access, now) }}</dd>
+    <dt>Description</dt><dd class="prewrap">{{ access.description }}</dd>
+    <dt>Justification</dt><dd class="prewrap">{{ access.justification }}</dd>
+    <dt>Notes</dt><dd class="prewrap">{{ access.notes or "None" }}</dd>
+    <dt>Registered</dt><dd>{{ access.created_at|local }} by {{ access.created_by }}</dd>
+    {% if access.updated_at %}<dt>Last change</dt><dd>{{ access.updated_at|local }} by {{ access.updated_by }}</dd>{% endif %}
+  </dl>
+</section>
+
+<h2 class="section-title">Renewal history</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Renewed</th><th>By</th><th>Previous end</th><th>New end</th><th>Reason</th></tr></thead>
+    <tbody>
+      {% for r in access.renewals %}
+      <tr>
+        <td class="nowrap">{{ r.renewed_at|local }}</td>
+        <td>{{ r.renewed_by }}</td>
+        <td class="nowrap">{{ r.previous_end_at|local }}</td>
+        <td class="nowrap">{{ r.new_end_at|local }}</td>
+        <td class="prewrap">{{ r.reason }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">Never renewed.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="section-title">Reviews</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Reviewed</th><th>By</th><th>Source</th><th>Outcome</th><th>Justification</th></tr></thead>
+    <tbody>
+      {% for e in review_entries %}
+      <tr>
+        <td class="nowrap">{{ e.at|local }}</td>
+        <td>{{ e.by }}</td>
+        <td>{{ e.source }}</td>
+        <td>{{ e.outcome }}</td>
+        <td class="prewrap">{{ e.justification or "" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">{% if needs_review %}Expired and waiting for review.{% else %}Never reviewed.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="section-title">Audit trail</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Details</th></tr></thead>
+    <tbody>
+      {% for e in trail %}
+      <tr>
+        <td class="nowrap">{{ e.timestamp|local("%Y-%m-%d %H:%M:%S") }}</td>
+        <td>{{ e.actor }}</td>
+        <td><code>{{ e.action }}</code></td>
+        <td>{{ e.details or "" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No events yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

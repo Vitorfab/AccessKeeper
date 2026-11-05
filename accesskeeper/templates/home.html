@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, ends, campaign_badge, progress %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+{% if pending %}
+<div class="alert bad" role="alert">
+  <strong>{{ pending }}</strong> expired {{ "access still needs" if pending == 1 else "accesses still need" }} review.
+  <a href="{{ url_for('review.queue') }}">Open the review queue</a>
+</div>
+{% endif %}
+{% if counts.expiring %}
+<div class="alert warn" role="alert">
+  <strong>{{ counts.expiring }}</strong> {{ "access ends" if counts.expiring == 1 else "accesses end" }} within {{ soon_days }} days.
+  <a href="{{ url_for('access.index', status='expiring', sort='end', dir='asc') }}">View expiring accesses</a>
+</div>
+{% endif %}
+{% if overdue_campaigns %}
+<div class="alert bad" role="alert">
+  <strong>{{ overdue_campaigns }}</strong> review {{ "campaign is" if overdue_campaigns == 1 else "campaigns are" }} overdue.
+  <a href="{{ url_for('review.campaigns') }}">View campaigns</a>
+</div>
+{% endif %}
+{% if not pending and not counts.expiring and not overdue_campaigns %}
+<div class="alert ok">Nothing needs attention right now.</div>
+{% endif %}
+
+<div class="stats">
+  <a class="stat ok" href="{{ url_for('access.index', status='active') }}">
+    <span class="stat-value">{{ counts.active }}</span>
+    <span class="stat-label">Active</span>
+    <span class="stat-note">More than {{ soon_days }} days left</span>
+  </a>
+  <a class="stat warn" href="{{ url_for('access.index', status='expiring', sort='end', dir='asc') }}">
+    <span class="stat-value">{{ counts.expiring }}</span>
+    <span class="stat-label">Expiring soon</span>
+    <span class="stat-note">Ends within {{ soon_days }} days</span>
+  </a>
+  <a class="stat" href="{{ url_for('access.index', status='scheduled') }}">
+    <span class="stat-value">{{ counts.scheduled }}</span>
+    <span class="stat-label">Scheduled</span>
+    <span class="stat-note">Start date is in the future</span>
+  </a>
+  <a class="stat bad" href="{{ url_for('access.index', status='expired') }}">
+    <span class="stat-value">{{ counts.expired }}</span>
+    <span class="stat-label">Expired</span>
+    <span class="stat-note">End date has passed</span>
+  </a>
+  <a class="stat" href="{{ url_for('access.index', status='closed') }}">
+    <span class="stat-value">{{ counts.closed }}</span>
+    <span class="stat-label">Closed</span>
+    <span class="stat-note">Removed from the real system</span>
+  </a>
+  <a class="stat {{ 'bad' if crit.critical else '' }}" href="{{ url_for('access.index', criticality='critical') }}">
+    <span class="stat-value">{{ crit.critical }}</span>
+    <span class="stat-label">Critical running</span>
+    <span class="stat-note">Active or expiring soon</span>
+  </a>
+  <a class="stat {{ 'warn' if crit.high else '' }}" href="{{ url_for('access.index', criticality='high') }}">
+    <span class="stat-value">{{ crit.high }}</span>
+    <span class="stat-label">High running</span>
+    <span class="stat-note">Active or expiring soon</span>
+  </a>
+  <a class="stat {{ 'bad' if pending else '' }}" href="{{ url_for('review.queue') }}">
+    <span class="stat-value">{{ pending }}</span>
+    <span class="stat-label">Pending review</span>
+    <span class="stat-note">Expired, not reviewed yet</span>
+  </a>
+</div>
+
+<h2 class="section-title">Ending soonest</h2>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Company</th><th>System</th><th>Access type</th><th>Ends</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      {% for a in upcoming %}
+      <tr>
+        <td><a href="{{ url_for('access.detail', access_id=a.id) }}">{{ a.name }}</a></td>
+        <td>{{ a.company }}</td>
+        <td>{{ a.system }}</td>
+        <td>{{ a.access_type }}</td>
+        <td class="nowrap">{{ ends(a, now) }}</td>
+        <td>{{ status_badge(a.status_at(now, soon_days)) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">No running accesses.{% if current_user.is_admin %} <a href="{{ url_for('access.create') }}">Register the first access</a>.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="section-title">Open review campaigns</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Campaign</th><th>Due</th><th>Progress</th><th>State</th></tr></thead>
+    <tbody>
+      {% for r in campaigns %}
+      <tr>
+        <td><a href="{{ url_for('review.campaign_detail', campaign_id=r.campaign.id) }}">{{ r.campaign.name }}</a></td>
+        <td class="nowrap">{{ r.campaign.due_at|local("%Y-%m-%d") }}</td>
+        <td>{{ progress(r.done, r.total, r.percent) }}</td>
+        <td>{{ campaign_badge(r.state) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No open campaigns.{% if current_user.is_admin %} <a href="{{ url_for('review.campaign_new') }}">Start one</a>.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

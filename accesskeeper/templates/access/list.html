@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, ends, criticality_badge %}
+{% block title %}{{ "Archive" if archived else "Accesses" }}{% endblock %}
+{% block content %}
+{% macro sort_th(key, label) %}
+  {% set current = filters.sort == key %}
+  {% set next_dir = ("desc" if filters.dir == "asc" else "asc") if current else "asc" %}
+  <th aria-sort="{{ ('ascending' if filters.dir == 'asc' else 'descending') if current else 'none' }}">
+    <a class="sort{{ ' current' if current else '' }}" href="{{ url_for(endpoint, **dict(qargs, sort=key, dir=next_dir)) }}">{{ label }}{% if current %}<span class="sort-mark">{{ "▲" if filters.dir == "asc" else "▼" }}</span>{% endif %}</a>
+  </th>
+{% endmacro %}
+
+<div class="page-head">
+  <h1>{{ "Archive" if archived else "Accesses" }}</h1>
+  <div class="actions">
+    {% if archived %}<a class="btn" href="{{ url_for('access.index') }}">Back to accesses</a>{% else %}<a class="btn" href="{{ url_for('access.archive') }}">Archive</a>{% endif %}
+    <a class="btn" href="{{ url_for('access.export_csv', **dict(base_args, **({'archived': 1} if archived else {}))) }}">Export CSV</a>
+    {% if current_user.is_admin %}<a class="btn primary" href="{{ url_for('access.create') }}">New access</a>{% endif %}
+  </div>
+</div>
+
+<form method="get" action="{{ url_for(endpoint) }}" class="filters card">
+  <input type="hidden" name="sort" value="{{ filters.sort }}">
+  <input type="hidden" name="dir" value="{{ filters.dir }}">
+  <div class="field grow">
+    <label for="q">Search</label>
+    <input type="search" id="q" name="q" value="{{ filters.q }}" maxlength="100" placeholder="Name, email, company, system, ticket">
+  </div>
+  {% if not archived %}
+  <div class="field">
+    <label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="">All</option>
+      {% for s in statuses %}<option value="{{ s }}"{{ " selected" if filters.status == s }}>{{ STATUS_LABELS[s] }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <div class="field">
+    <label for="user_type">User type</label>
+    <select id="user_type" name="user_type">
+      <option value="">All</option>
+      <option value="internal"{{ " selected" if filters.user_type == "internal" }}>Internal</option>
+      <option value="external"{{ " selected" if filters.user_type == "external" }}>External</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="criticality">Criticality</label>
+    <select id="criticality" name="criticality">
+      <option value="">All</option>
+      {% for level in criticalities %}<option value="{{ level }}"{{ " selected" if filters.criticality == level }}>{{ CRITICALITY_LABELS[level] }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="company">Company</label>
+    <select id="company" name="company">
+      <option value="">All</option>
+      {% for c in companies %}<option value="{{ c }}"{{ " selected" if filters.company == c }}>{{ c }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="system">System</label>
+    <select id="system" name="system">
+      <option value="">All</option>
+      {% for s in systems %}<option value="{{ s }}"{{ " selected" if filters.system == s }}>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-actions">
+    <button type="submit" class="btn primary">Apply</button>
+    <a class="btn" href="{{ url_for(endpoint) }}">Reset</a>
+  </div>
+</form>
+
+{% if archived %}
+<p class="muted">The archive holds closed accesses: the ones removed from the real system. They stay searchable here and are never deleted. To grant one again, open it and use Register again.</p>
+{% elif not filters.status %}
+<p class="muted">Closed accesses are hidden here unless you pick the Closed status. <a href="{{ url_for('access.archive') }}">Open the archive</a>.</p>
+{% endif %}
+<p class="muted">{{ page.total }} {{ "access" if page.total == 1 else "accesses" }}. Times are shown in {{ config['TIMEZONE'] }}.</p>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        {{ sort_th("name", "Name") }}
+        {{ sort_th("company", "Company") }}
+        <th>Type</th>
+        {{ sort_th("system", "System") }}
+        <th>Access type</th>
+        {{ sort_th("criticality", "Criticality") }}
+        {{ sort_th("start", "Start") }}
+        {{ sort_th("end", "End") }}
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a, status in rows %}
+      <tr>
+        <td><a href="{{ url_for('access.detail', access_id=a.id) }}">{{ a.name }}</a><br><span class="muted small-text">{{ a.email }}</span></td>
+        <td>{{ a.company }}</td>
+        <td>{{ a.user_type|capitalize }}</td>
+        <td>{{ a.system }}</td>
+        <td>{{ a.access_type }}</td>
+        <td>{{ criticality_badge(a.criticality) }}</td>
+        <td class="nowrap">{{ a.start_at|local }}</td>
+        <td class="nowrap">{{ ends(a, now) }}</td>
+        <td>{{ status_badge(status) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" class="muted">No accesses match these filters.{% if qargs %} <a href="{{ url_for(endpoint) }}">Reset the filters</a>.{% elif current_user.is_admin %} <a href="{{ url_for('access.create') }}">Register the first access</a>.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if page.pages > 1 %}
+<nav class="pager" aria-label="Pagination">
+  {% if page.has_prev %}<a class="btn small" href="{{ url_for(endpoint, **dict(base_args, page=page.prev_num)) }}">Previous</a>{% endif %}
+  <span class="muted">Page {{ page.page }} of {{ page.pages }}</span>
+  {% if page.has_next %}<a class="btn small" href="{{ url_for(endpoint, **dict(base_args, page=page.next_num)) }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

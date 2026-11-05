@@ -1,0 +1,16 @@
+{% macro status_badge(status) %}<span class="badge {{ STATUS_BADGES[status] }}">{{ STATUS_LABELS[status] }}</span>{% endmacro %}
+
+{% macro criticality_badge(level) %}<span class="badge {{ CRITICALITY_BADGES.get(level, '') }}">{{ CRITICALITY_LABELS.get(level, level) }}</span>{% endmacro %}
+
+{% macro ends(a, now) %}{{ a.end_at|local }} <span class="muted">({{ a.end_at|reltime(now) }})</span>{% endmacro %}
+
+{% macro campaign_badge(state) %}<span class="badge {{ CAMPAIGN_BADGES[state] }}">{{ CAMPAIGN_LABELS[state] }}</span>{% endmacro %}
+
+{% macro progress(done, total, percent) %}<div class="progress-wrap"><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="{{ total }}" aria-valuenow="{{ done }}"><span class="p{{ percent }}"></span></div><span class="muted small-text">{{ done }} of {{ total }} reviewed</span></div>{% endmacro %}
+
+{% macro review_tabs(active) %}
+<nav class="tabs" aria-label="Review sections">
+  <a href="{{ url_for('review.queue') }}" class="{{ 'active' if active == 'queue' else '' }}">Review queue</a>
+  <a href="{{ url_for('review.campaigns') }}" class="{{ 'active' if active == 'campaigns' else '' }}">Campaigns</a>
+</nav>
+{% endmacro %}

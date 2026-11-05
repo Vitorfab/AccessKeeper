@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Audit integrity{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Audit log integrity</h1>
+  <a class="btn" href="{{ url_for('main.audit_log') }}">Back to audit log</a>
+</div>
+<p class="muted">Every new event is sealed to the one before it with a keyed hash (HMAC-SHA256). Changing, removing or inserting an event breaks the chain, and the check below finds the first broken event.</p>
+
+{% if not chain.started %}
+<div class="alert warn">The hash chain has not been started yet.</div>
+{% else %}
+<section class="card">
+  <dl class="facts">
+    <dt>Chained events</dt><dd>{{ chain.chained }}</dd>
+    <dt>Before the chain</dt><dd>{{ chain.legacy }} {{ "event" if chain.legacy == 1 else "events" }}, protected by a fingerprint recorded when the chain started</dd>
+    <dt>Chain started</dt><dd>{{ chain.started_at|local("%Y-%m-%d %H:%M:%S") }}</dd>
+    <dt>Audit key</dt><dd>{% if chain.key_matches %}<span class="badge ok">Matches the chain</span>{% else %}<span class="badge warn">Different from the chain</span> SECRET_KEY or AUDIT_HASH_KEY changed, so the chain cannot be verified.{% endif %}</dd>
+    {% if chain.top %}<dt>Top of the chain</dt>
+    <dd>
+      Event #{{ chain.top.id }} · {{ chain.top.timestamp|local("%Y-%m-%d %H:%M:%S") }} ({{ config['TIMEZONE'] }})<br>
+      <code class="hash">{{ chain.top.hash }}</code>
+    </dd>{% endif %}
+    {% if last_check %}<dt>Last check</dt><dd>{{ last_check.timestamp|local("%Y-%m-%d %H:%M:%S") }} by {{ last_check.actor }} · {{ last_check.details }}</dd>{% endif %}
+  </dl>
+  <form method="post" action="{{ url_for('main.audit_integrity_verify') }}" class="actions">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn primary">Verify integrity</button>
+  </form>
+</section>
+
+<h2 class="section-title">Keep a copy of the top of the chain</h2>
+<ul class="muted">
+  <li>Copy the top hash above into somewhere outside this app now and then (a ticket, an email). If the last events are ever removed or the whole chain is rebuilt, the value you kept will no longer match.</li>
+  <li>Keep the <code>.env</code> file with your database backup. The chain key comes from <code>SECRET_KEY</code>, or from <code>AUDIT_HASH_KEY</code> if you set it.</li>
+  <li>The check alone cannot notice that the very last events were deleted, and someone who holds both the database and the key can rebuild the whole chain. The copy you kept outside the app covers that gap.</li>
+</ul>
+{% endif %}
+{% endblock %}
