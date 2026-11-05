@@ -24,7 +24,6 @@ KEY_INFO = b"accesskeeper audit log hash chain v1"
 START_DETAILS = re.compile(
     r"legacy_events=(\d+) \| last_legacy_id=(\d+) \| legacy_digest=([0-9a-f]{64}) \| key_fp=([0-9a-f]{16})"
 )
-BATCH = 1000
 OK, BROKEN, CANNOT = 0, 1, 2
 
 
@@ -53,16 +52,20 @@ def entry_hash(key, prev_hash, row):
     return hmac.new(key, canonical([prev_hash, stamp(ts), actor, action, target, details, ip]), hashlib.sha256).hexdigest()
 
 
-COLUMNS = "id, timestamp, actor, action, target, details, ip, prev_hash, hash"
+CHAINED_SQL = (
+    "SELECT id, timestamp, actor, action, target, details, ip, prev_hash, hash "
+    "FROM audit_log WHERE id > ? AND hash IS NOT NULL ORDER BY id LIMIT 1000"
+)
+LEGACY_SQL = (
+    "SELECT id, timestamp, actor, action, target, details, ip, prev_hash, hash "
+    "FROM audit_log WHERE id > ? AND hash IS NULL AND id < ? ORDER BY id LIMIT 1000"
+)
 
 
-def rows(conn, where, params=()):
+def rows(conn, sql, *params):
     last = 0
     while True:
-        batch = conn.execute(
-            f"SELECT {COLUMNS} FROM audit_log WHERE id > ? AND {where} ORDER BY id LIMIT {BATCH}",
-            (last, *params),
-        ).fetchall()
+        batch = conn.execute(sql, (last, *params)).fetchall()
         if not batch:
             return
         yield from batch
@@ -72,7 +75,7 @@ def rows(conn, where, params=()):
 def legacy_digest(conn, before_id):
     digest = hashlib.sha256()
     count = 0
-    for r in rows(conn, "hash IS NULL AND id < ?", (before_id,)):
+    for r in rows(conn, LEGACY_SQL, before_id):
         digest.update(canonical([r[0], stamp(r[1]), r[2], r[3], r[4], r[5], r[6]]) + b"\n")
         count += 1
     return count, digest.hexdigest()
@@ -94,7 +97,7 @@ def verify(conn, key, expected_top=None):
 
     previous = start = top = None
     checked = 0
-    for row in rows(conn, "hash IS NOT NULL"):
+    for row in rows(conn, CHAINED_SQL):
         if previous is None:
             match = START_DETAILS.fullmatch(row[5] or "")
             if row[3] != CHAIN_START_ACTION or row[7] != ZERO_HASH or not match:
