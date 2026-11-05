@@ -5,7 +5,7 @@ Flask-SQLAlchemy==3.1.1
 SQLAlchemy==2.0.43
 Flask-Login==0.6.3
 Flask-WTF==1.2.2
-WTForms==3.2.1
+WTForms==3.3.2
 python-dotenv==1.2.3
 waitress==3.0.2
 tzdata==2025.2
