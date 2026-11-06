@@ -58,7 +58,7 @@ def humanize_delta(value, now=None):
 def is_safe_next(target):
     if not target or not target.startswith("/") or target.startswith("//"):
         return False
-    if "\\" in target:
+    if "\\" in target or any(ord(ch) < 32 or ord(ch) == 127 for ch in target):
         return False
     parts = urlsplit(target)
     return not parts.scheme and not parts.netloc
