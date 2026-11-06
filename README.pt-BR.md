@@ -174,6 +174,7 @@ python -m pytest
 - Quem tem acesso à máquina, ao `.env` ou ao arquivo do banco tem controle total. O banco não é criptografado.
 - Campos de texto livre ainda podem receber um segredo se alguém digitar. As telas avisam "Do not store passwords or secrets", mas o app não consegue detectar isso.
 - Não há autenticação em dois fatores nem SSO.
+- Até o primeiro administrador ser criado, a página de setup fica aberta para quem chegar primeiro ao app. Crie o administrador logo após a primeira execução e mantenha o app em `127.0.0.1`.
 - O bloqueio de login é por conta, então alguém pode bloquear um usuário de propósito por alguns minutos.
 - O audit log resiste a adulteração pelo app, mas não é à prova de adulteração: quem acessa o banco diretamente pode remover os gatilhos. A cadeia de hash detecta essas alterações **a menos que a pessoa também tenha a chave**: quem tem o banco e a `SECRET_KEY` (ou a `AUDIT_HASH_KEY`) consegue recalcular a cadeia inteira.
 - A verificação sozinha não percebe que os **últimos** eventos foram apagados junto com o topo da cadeia. Copie o hash do topo para fora do app de vez em quando: uma verificação futura que não bata com ele revela um corte ou uma cadeia refeita.

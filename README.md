@@ -174,6 +174,7 @@ python -m pytest
 - Anyone with access to the machine or the `.env` and database files has full control. The database is not encrypted.
 - Free-text fields can still receive a secret if a person types one. The screens warn "Do not store passwords or secrets", but the app cannot detect it.
 - No two-factor authentication and no SSO.
+- Until the first administrator is created, the setup page is open to whoever reaches the app first. Create the administrator right after the first start, and keep the app on `127.0.0.1`.
 - The login lockout is per account, so someone could deliberately lock a user out for a few minutes.
 - The audit log is tamper-resistant from the app, not tamper-proof: a person with direct database access can drop the triggers. The hash chain detects such changes **unless the person also has the key**: someone who holds both the database and `SECRET_KEY` (or `AUDIT_HASH_KEY`) can recompute the whole chain.
 - The verification alone cannot notice that the **last** events were deleted along with the chain head. Copy the top-of-chain hash outside the app from time to time: a later check that does not match it reveals a cut or a rebuilt chain.

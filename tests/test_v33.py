@@ -172,3 +172,18 @@ def test_script_reports_a_missing_database(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("SECRET_KEY", "x" * 48)
     assert load_script().main(["--db", str(tmp_path / "none.db")]) == 2
     assert "not found" in capsys.readouterr().out
+
+
+# ---- redirect safety
+
+@pytest.mark.parametrize("target", ["//evil.com", "/\\evil.com", "/\t/evil.com", "/\n/evil.com", "https://evil.com", ""])
+def test_unsafe_next_targets_are_refused(target):
+    from accesskeeper.utils import is_safe_next
+
+    assert not is_safe_next(target)
+
+
+def test_safe_next_target_is_allowed():
+    from accesskeeper.utils import is_safe_next
+
+    assert is_safe_next("/access/?status=expired")
