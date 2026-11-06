@@ -157,6 +157,7 @@ python -m pytest
 
 **O que o app protege**
 
+- Sair, ou ser deslogado por inatividade, também invalida a sessão no servidor: um cookie copiado antes não funciona depois. Isso encerra as sessões do usuário em todos os navegadores.
 - Senhas com hash (scrypt). Sessões com cookies HttpOnly e SameSite=Lax, que expiram por inatividade.
 - Proteção CSRF em todos os formulários, checagem de permissão no servidor em todas as rotas, consultas parametrizadas e saída escapada.
 - Bloqueio de login e mensagem de erro genérica, para não revelar quais contas existem.

@@ -103,7 +103,9 @@ def session_ping():
 @bp.post("/session/expire")
 def session_expire():
     if current_user.is_authenticated:
-        audit.record("auth.session_timeout", target=current_user.username)
+        user = current_user._get_current_object()
+        audit.record("auth.session_timeout", target=user.username)
+        user.session_version += 1
         db.session.commit()
         logout_user()
         session.clear()
@@ -113,7 +115,9 @@ def session_expire():
 @bp.post("/logout")
 @login_required
 def logout():
-    audit.record("auth.logout", target=current_user.username)
+    user = current_user._get_current_object()
+    audit.record("auth.logout", target=user.username)
+    user.session_version += 1
     db.session.commit()
     logout_user()
     session.clear()

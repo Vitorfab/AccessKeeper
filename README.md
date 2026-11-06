@@ -160,6 +160,7 @@ python -m pytest
 - Passwords are hashed (scrypt). Sessions use HttpOnly, SameSite=Lax cookies and expire after inactivity.
 - CSRF protection on every form, server-side permission checks on every route, parameterized queries, escaped output.
 - Login lockout and a generic login error, so accounts cannot be enumerated.
+- Signing out, or being signed out for inactivity, also invalidates the session on the server: a cookie copied before that no longer works. This ends the user's sessions on every browser.
 - Idle sign-out: the server stops accepting a session about 20 seconds after the idle limit, and the browser signs out exactly at the limit. The warning is a convenience, not a security control.
 - The typed username of a failed login is **never** written to the audit log, because people sometimes type a password in that field. The log keeps `anonymous`, the reason and the IP.
 - Content Security Policy without external sources, plus `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and related headers.
