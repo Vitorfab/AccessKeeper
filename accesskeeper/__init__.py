@@ -8,6 +8,8 @@ from flask_wtf.csrf import CSRFError
 from sqlalchemy import event, func, select
 from sqlalchemy.engine import Engine
 
+from werkzeug.routing import IntegerConverter
+
 from .config import Config
 from .extensions import csrf, db, login_manager
 from .utils import humanize_delta, local_dt
@@ -39,6 +41,14 @@ def _enable_sqlite_foreign_keys(dbapi_connection, connection_record):
         cursor.close()
 
 
+class BoundedIntegerConverter(IntegerConverter):
+    """Ids beyond the SQLite integer range are a plain 404, never a server error."""
+
+    def __init__(self, map, *args, **kwargs):
+        kwargs.setdefault("max", 2**31 - 1)
+        super().__init__(map, *args, **kwargs)
+
+
 def create_app(overrides=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(Config)
@@ -64,6 +74,7 @@ def create_app(overrides=None):
         db_file = Path(app.instance_path) / "accesskeeper.db"
         app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_file.as_posix()}"
 
+    app.url_map.converters["int"] = BoundedIntegerConverter
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
@@ -148,6 +159,10 @@ def create_app(overrides=None):
     @app.errorhandler(404)
     def not_found(_error):
         return error_page(404, "That page does not exist.")
+
+    @app.errorhandler(500)
+    def server_error(_error):
+        return error_page(500, "Something went wrong on the server. Details are not shown on purpose.")
 
     @app.errorhandler(413)
     def too_large(_error):
