@@ -18,3 +18,9 @@ Thumbs.db
 
 # Build output
 *.zip
+
+# Local security-testing output and extra env files
+pentest*.txt
+*.log
+.env.*
+!.env.example
