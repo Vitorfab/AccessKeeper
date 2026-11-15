@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 # Pull in Debian security fixes published after the base image was built.
 RUN apt-get update \
